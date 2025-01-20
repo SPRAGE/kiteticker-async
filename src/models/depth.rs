@@ -1,8 +1,9 @@
 use crate::Exchange;
+use serde::{Deserialize, Serialize};
 
 use super::{value, price, value_short};
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 ///
 /// Market depth packet structure
 ///
@@ -36,7 +37,7 @@ impl Depth {
   }
 }
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 ///
 /// Structure for each market depth entry
 ///

@@ -1,8 +1,10 @@
 use crate::Exchange;
+use serde::{Deserialize, Serialize};
+use redis_derive::ToRedisArgs;
 
 use super::price;
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, ToRedisArgs)]
 ///
 /// OHLC packet structure
 ///

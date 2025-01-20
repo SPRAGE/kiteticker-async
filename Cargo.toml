@@ -23,6 +23,8 @@ tokio-stream = { version = "0.1.14", features = ["full"] }
 url = "2.4.1"
 serde_with = "3.4.0"
 chrono = { version = "0.4.31", features = ["serde"] }
+redis-derive = "0.1.7"
+redis = "0.28.1"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["test-util"] }

@@ -1,10 +1,11 @@
 use std::time::Duration;
+use serde::{Serialize, Deserialize};
 
 use crate::{Depth, Exchange, Mode, OHLC};
 
 use super::{price, value};
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 ///
 /// Quote packet structure
 ///
