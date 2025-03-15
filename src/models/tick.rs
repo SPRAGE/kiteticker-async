@@ -1,10 +1,10 @@
 use std::time::Duration;
-
+use serde::{Serialize, Deserialize};
 use crate::{Depth, Exchange, Mode, OHLC};
 
 use super::{price, value};
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq,Serialize,Deserialize)]
 ///
 /// Quote packet structure
 ///
@@ -117,7 +117,7 @@ impl From<&[u8]> for Tick {
         if let Some(bs) = i.get(44..184) {
           t.mode = Mode::Full;
           t.set_change();
-          
+
           // 44 - 48 bytes : last traded timestamp
           t.last_traded_timestamp =
             value(&bs[0..4]).map(|x| Duration::from_secs(x.into()));

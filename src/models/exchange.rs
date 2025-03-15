@@ -1,4 +1,6 @@
-#[derive(Debug, Clone, Default, PartialEq)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Default, PartialEq,Serialize,Deserialize)]
 ///
 /// Exchange options
 ///

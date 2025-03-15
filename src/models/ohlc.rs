@@ -1,8 +1,8 @@
 use crate::Exchange;
-
+use serde::{Serialize, Deserialize};
 use super::price;
 
-#[derive(Debug, Clone, Default, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq,Serialize, Deserialize)]
 ///
 /// OHLC packet structure
 ///
