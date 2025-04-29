@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 /// Modes in which packets are streamed
 ///
 pub enum Mode {
-  Full,
   #[default]
+  Full,
   Quote,
   LTP,
 }
