@@ -6,9 +6,9 @@ pub async fn main() -> Result<(), String> {
   let access_token = std::env::var("KITE_ACCESS_TOKEN").unwrap_or_default();
   let ticker = KiteTickerAsync::connect(&api_key, &access_token).await?;
 
-  let token = 408065;
+  let token = [256265,408065];
   // subscribe to an instrument
-  let mut subscriber = ticker.subscribe(&[token], Some(Mode::Full)).await?;
+  let mut subscriber = ticker.subscribe(&token, Some(Mode::Full)).await?;
 
   // await quotes
   loop {
@@ -20,7 +20,6 @@ pub async fn main() -> Result<(), String> {
             "Received tick for instrument_token {}, {:?}",
             tick.instrument_token, tick
           );
-          break;
         }
         _ => {
           println!("Received message from broker {:?}", msg);
