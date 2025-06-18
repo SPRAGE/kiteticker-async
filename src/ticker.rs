@@ -7,8 +7,31 @@ use std::collections::HashMap;
 use tokio::sync::{broadcast, mpsc};
 use tokio::task::JoinHandle;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
+use std::time::Duration;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub struct KiteTickerConfig {
+    /// Buffer size for the broadcast channel
+    pub broadcast_buffer_size: usize,
+    /// WebSocket connection timeout in seconds
+    pub connection_timeout_secs: u64,
+    /// Enable compression for WebSocket messages
+    pub enable_compression: bool,
+    /// Maximum message size in bytes
+    pub max_message_size: usize,
+}
+
+impl Default for KiteTickerConfig {
+    fn default() -> Self {
+        Self {
+            broadcast_buffer_size: 1000,
+            connection_timeout_secs: 30,
+            enable_compression: true,
+            max_message_size: 64 * 1024, // 64KB
+        }
+    }
+}
+
 ///
 /// The WebSocket client for connecting to Kite Connect's streaming quotes service.
 ///
@@ -40,7 +63,8 @@ impl KiteTickerAsync {
     let (write_half, mut read_half) = ws_stream.split();
 
     let (cmd_tx, mut cmd_rx) = mpsc::unbounded_channel::<Message>();
-    let (msg_tx, _) = broadcast::channel(100);
+    // Increase buffer size for high-frequency tick data
+    let (msg_tx, _) = broadcast::channel(1000);
     let mut write = write_half;
     let writer_handle = tokio::spawn(async move {
       while let Some(msg) = cmd_rx.recv().await {
@@ -55,13 +79,110 @@ impl KiteTickerAsync {
       while let Some(message) = read_half.next().await {
         match message {
           Ok(msg) => {
-            if let Some(p) = process_message(msg) {
-              let _ = msg_sender.send(p);
+            // Process message and send result if successful
+            if let Some(processed_msg) = process_message(msg) {
+              if msg_sender.send(processed_msg).is_err() {
+                // All receivers have been dropped, exit gracefully
+                break;
+              }
             }
           }
           Err(e) => {
-            let _ = msg_sender.send(TickerMessage::Error(e.to_string()));
-            break;
+            // Send error and continue trying to read
+            let error_msg = TickerMessage::Error(format!("WebSocket error: {}", e));
+            if msg_sender.send(error_msg).is_err() {
+              // All receivers have been dropped, exit gracefully
+              break;
+            }
+            // For critical errors, we might want to break the loop
+            if matches!(e, tokio_tungstenite::tungstenite::Error::ConnectionClosed | 
+                          tokio_tungstenite::tungstenite::Error::AlreadyClosed) {
+              break;
+            }
+          }
+        }
+      }
+    });
+
+    Ok(KiteTickerAsync {
+      api_key: api_key.to_string(),
+      access_token: access_token.to_string(),
+      cmd_tx: Some(cmd_tx),
+      msg_tx,
+      writer_handle: Some(writer_handle),
+      reader_handle: Some(reader_handle),
+    })
+  }
+
+  /// Establish a connection with custom configuration
+  pub async fn connect_with_config(
+    api_key: &str,
+    access_token: &str,
+    config: KiteTickerConfig,
+  ) -> Result<Self, String> {
+    use tokio_tungstenite::tungstenite::protocol::WebSocketConfig;
+    
+    let socket_url = format!(
+      "wss://{}?api_key={}&access_token={}",
+      "ws.kite.trade", api_key, access_token
+    );
+    let url = url::Url::parse(socket_url.as_str()).unwrap();
+
+    let ws_config = WebSocketConfig {
+      max_message_size: Some(config.max_message_size),
+      max_frame_size: Some(config.max_message_size),
+      accept_unmasked_frames: false,
+      ..Default::default()
+    };
+
+    let connector = tokio_tungstenite::Connector::NativeTls(
+      native_tls::TlsConnector::builder()
+        .build()
+        .map_err(|e| e.to_string())?
+    );
+
+    let (ws_stream, _) = tokio::time::timeout(
+      std::time::Duration::from_secs(config.connection_timeout_secs),
+      tokio_tungstenite::connect_async_with_config(url, Some(ws_config), Some(connector))
+    )
+    .await
+    .map_err(|_| "Connection timeout".to_string())?
+    .map_err(|e| e.to_string())?;
+
+    let (write_half, mut read_half) = ws_stream.split();
+
+    let (cmd_tx, mut cmd_rx) = mpsc::unbounded_channel::<Message>();
+    let (msg_tx, _) = broadcast::channel(config.broadcast_buffer_size);
+    let mut write = write_half;
+    
+    let writer_handle = tokio::spawn(async move {
+      while let Some(msg) = cmd_rx.recv().await {
+        if write.send(msg).await.is_err() {
+          break;
+        }
+      }
+    });
+
+    let msg_sender = msg_tx.clone();
+    let reader_handle = tokio::spawn(async move {
+      while let Some(message) = read_half.next().await {
+        match message {
+          Ok(msg) => {
+            if let Some(processed_msg) = process_message(msg) {
+              if msg_sender.send(processed_msg).is_err() {
+                break;
+              }
+            }
+          }
+          Err(e) => {
+            let error_msg = TickerMessage::Error(format!("WebSocket error: {}", e));
+            if msg_sender.send(error_msg).is_err() {
+              break;
+            }
+            if matches!(e, tokio_tungstenite::tungstenite::Error::ConnectionClosed | 
+                          tokio_tungstenite::tungstenite::Error::AlreadyClosed) {
+              break;
+            }
           }
         }
       }
@@ -84,13 +205,13 @@ impl KiteTickerAsync {
     mode: Option<Mode>,
   ) -> Result<KiteTickerSubscriber, String> {
     self
-      .subscribe_cmd(instrument_tokens, mode.clone())
+      .subscribe_cmd(instrument_tokens, mode.as_ref())
       .await
       .expect("failed to subscribe");
+    let default_mode = mode.unwrap_or_default();
     let st = instrument_tokens
-      .to_vec()
       .iter()
-      .map(|t| (t.clone(), mode.to_owned().unwrap_or_default()))
+      .map(|&t| (t, default_mode.clone()))
       .collect();
 
     let rx = self.msg_tx.subscribe();
@@ -118,12 +239,13 @@ impl KiteTickerAsync {
   async fn subscribe_cmd(
     &mut self,
     instrument_tokens: &[u32],
-    mode: Option<Mode>,
+    mode: Option<&Mode>,
   ) -> Result<(), String> {
+    let mode_value = mode.cloned().unwrap_or_default();
     let msgs = vec![
       Message::Text(Request::subscribe(instrument_tokens.to_vec()).to_string()),
       Message::Text(
-        Request::mode(mode.unwrap_or_default(), instrument_tokens.to_vec())
+        Request::mode(mode_value, instrument_tokens.to_vec())
           .to_string(),
       ),
     ];
@@ -162,6 +284,23 @@ impl KiteTickerAsync {
       .map_err(|e| e.to_string())?;
     }
     Ok(())
+  }
+
+  /// Check if the connection is still alive
+  pub fn is_connected(&self) -> bool {
+    self.cmd_tx.is_some() && 
+    self.writer_handle.as_ref().map_or(false, |h| !h.is_finished()) &&
+    self.reader_handle.as_ref().map_or(false, |h| !h.is_finished())
+  }
+
+  /// Send a ping to keep the connection alive
+  pub async fn ping(&mut self) -> Result<(), String> {
+    if let Some(tx) = &self.cmd_tx {
+      tx.send(Message::Ping(vec![])).map_err(|e| e.to_string())?;
+      Ok(())
+    } else {
+      Err("Connection is closed".to_string())
+    }
   }
 }
 
@@ -275,9 +414,9 @@ fn process_message(message: Message) -> Option<TickerMessage> {
         "reason": c.reason.to_string()
       }))
     }),
-    Message::Ping(_) => unimplemented!(),
-    Message::Pong(_) => unimplemented!(),
-    Message::Frame(_) => unimplemented!(),
+    Message::Ping(_) => None, // Handled automatically by tungstenite
+    Message::Pong(_) => None, // Handled automatically by tungstenite
+    Message::Frame(_) => None, // Low-level frame, usually not needed
   }
 }
 
@@ -290,8 +429,14 @@ fn process_binary(binary_message: &[u8]) -> Option<TickerMessage> {
     let mut start = 2;
     let mut ticks = Vec::with_capacity(num_packets);
     for _ in 0..num_packets {
+      if start + 2 > binary_message.len() {
+        return Some(TickerMessage::Error("Invalid packet structure".to_string()));
+      }
       let packet_len = packet_length(&binary_message[start..start + 2]);
       let next_start = start + 2 + packet_len;
+      if next_start > binary_message.len() {
+        return Some(TickerMessage::Error("Packet length exceeds message size".to_string()));
+      }
       match Tick::try_from(&binary_message[start + 2..next_start]) {
         Ok(tick) => ticks.push(TickMessage::new(tick.instrument_token, tick)),
         Err(e) => return Some(TickerMessage::Error(e.to_string())),
