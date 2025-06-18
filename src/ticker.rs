@@ -1,16 +1,14 @@
 use crate::models::{
   packet_length, Mode, Request, TextMessage, Tick, TickMessage, TickerMessage,
 };
-use futures_util::{stream::iter, SinkExt, StreamExt};
+use futures_util::{SinkExt, StreamExt};
 use serde_json::json;
-use std::{collections::HashMap, sync::Arc};
-use tokio::net::TcpStream;
-use tokio::sync::Mutex;
-use tokio_tungstenite::{
-  connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream,
-};
+use std::collections::HashMap;
+use tokio::sync::{broadcast, mpsc};
+use tokio::task::JoinHandle;
+use tokio_tungstenite::{connect_async, tungstenite::Message};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 ///
 /// The WebSocket client for connecting to Kite Connect's streaming quotes service.
 ///
@@ -19,7 +17,10 @@ pub struct KiteTickerAsync {
   api_key: String,
   #[allow(dead_code)]
   access_token: String,
-  ws_stream: Arc<Mutex<WebSocketStream<MaybeTlsStream<TcpStream>>>>,
+  cmd_tx: Option<mpsc::UnboundedSender<Message>>,
+  msg_tx: broadcast::Sender<TickerMessage>,
+  writer_handle: Option<JoinHandle<()>>,
+  reader_handle: Option<JoinHandle<()>>,
 }
 
 impl KiteTickerAsync {
@@ -36,10 +37,43 @@ impl KiteTickerAsync {
 
     let (ws_stream, _) = connect_async(url).await.map_err(|e| e.to_string())?;
 
+    let (write_half, mut read_half) = ws_stream.split();
+
+    let (cmd_tx, mut cmd_rx) = mpsc::unbounded_channel::<Message>();
+    let (msg_tx, _) = broadcast::channel(100);
+    let mut write = write_half;
+    let writer_handle = tokio::spawn(async move {
+      while let Some(msg) = cmd_rx.recv().await {
+        if write.send(msg).await.is_err() {
+          break;
+        }
+      }
+    });
+
+    let msg_sender = msg_tx.clone();
+    let reader_handle = tokio::spawn(async move {
+      while let Some(message) = read_half.next().await {
+        match message {
+          Ok(msg) => {
+            if let Some(p) = process_message(msg) {
+              let _ = msg_sender.send(p);
+            }
+          }
+          Err(e) => {
+            let _ = msg_sender.send(TickerMessage::Error(e.to_string()));
+            break;
+          }
+        }
+      }
+    });
+
     Ok(KiteTickerAsync {
       api_key: api_key.to_string(),
       access_token: access_token.to_string(),
-      ws_stream: Arc::new(Mutex::new(ws_stream)),
+      cmd_tx: Some(cmd_tx),
+      msg_tx,
+      writer_handle: Some(writer_handle),
+      reader_handle: Some(reader_handle),
     })
   }
 
@@ -59,16 +93,25 @@ impl KiteTickerAsync {
       .map(|t| (t.clone(), mode.to_owned().unwrap_or_default()))
       .collect();
 
+    let rx = self.msg_tx.subscribe();
     Ok(KiteTickerSubscriber {
       ticker: self,
       subscribed_tokens: st,
+      rx,
     })
   }
 
   /// Close the websocket connection
   pub async fn close(&mut self) -> Result<(), String> {
-    let mut ws_stream = self.ws_stream.lock().await;
-    ws_stream.close(None).await.map_err(|x| x.to_string())?;
+    if let Some(tx) = self.cmd_tx.take() {
+      let _ = tx.send(Message::Close(None));
+    }
+    if let Some(handle) = self.writer_handle.take() {
+      let _ = handle.await.map_err(|e| e.to_string())?;
+    }
+    if let Some(handle) = self.reader_handle.take() {
+      let _ = handle.await.map_err(|e| e.to_string())?;
+    }
     Ok(())
   }
 
@@ -77,22 +120,19 @@ impl KiteTickerAsync {
     instrument_tokens: &[u32],
     mode: Option<Mode>,
   ) -> Result<(), String> {
-    let mut msgs = iter(vec![
-      Ok(Message::Text(
-        Request::subscribe(instrument_tokens.to_vec()).to_string(),
-      )),
-      Ok(Message::Text(
+    let msgs = vec![
+      Message::Text(Request::subscribe(instrument_tokens.to_vec()).to_string()),
+      Message::Text(
         Request::mode(mode.unwrap_or_default(), instrument_tokens.to_vec())
           .to_string(),
-      )),
-    ]);
+      ),
+    ];
 
-    let mut ws_stream = self.ws_stream.lock().await;
-
-    ws_stream
-      .send_all(msgs.by_ref())
-      .await
-      .expect("failed to send subscription message");
+    for msg in msgs {
+      if let Some(tx) = &self.cmd_tx {
+        tx.send(msg).map_err(|e| e.to_string())?;
+      }
+    }
 
     Ok(())
   }
@@ -101,13 +141,12 @@ impl KiteTickerAsync {
     &mut self,
     instrument_tokens: &[u32],
   ) -> Result<(), String> {
-    let mut ws_stream = self.ws_stream.lock().await;
-    ws_stream
-      .send(Message::Text(
+    if let Some(tx) = &self.cmd_tx {
+      tx.send(Message::Text(
         Request::unsubscribe(instrument_tokens.to_vec()).to_string(),
       ))
-      .await
-      .expect("failed to send unsubscribe message");
+      .map_err(|e| e.to_string())?;
+    }
     Ok(())
   }
 
@@ -116,24 +155,24 @@ impl KiteTickerAsync {
     instrument_tokens: &[u32],
     mode: Mode,
   ) -> Result<(), String> {
-    let mut ws_stream = self.ws_stream.lock().await;
-    ws_stream
-      .send(Message::Text(
+    if let Some(tx) = &self.cmd_tx {
+      tx.send(Message::Text(
         Request::mode(mode, instrument_tokens.to_vec()).to_string(),
       ))
-      .await
-      .expect("failed to send set mode message");
+      .map_err(|e| e.to_string())?;
+    }
     Ok(())
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 ///
 /// The Websocket client that entered in a pub/sub mode once the client subscribed to a list of instruments
 ///
 pub struct KiteTickerSubscriber {
   ticker: KiteTickerAsync,
   subscribed_tokens: HashMap<u32, Mode>,
+  rx: broadcast::Receiver<TickerMessage>,
 }
 
 impl KiteTickerSubscriber {
@@ -194,12 +233,12 @@ impl KiteTickerSubscriber {
     instrument_tokens: &[u32],
   ) -> Result<(), String> {
     let tokens = self.get_subscribed_or(instrument_tokens);
-    match self.ticker.unsubscribe_cmd(tokens.as_slice()).await{
+    match self.ticker.unsubscribe_cmd(tokens.as_slice()).await {
       Ok(_) => {
         self.subscribed_tokens.retain(|k, _| !tokens.contains(k));
         Ok(())
-      },
-      Err(e) => Err(e)
+      }
+      Err(e) => Err(e),
     }
   }
 
@@ -208,73 +247,67 @@ impl KiteTickerSubscriber {
   pub async fn next_message(
     &mut self,
   ) -> Result<Option<TickerMessage>, String> {
-    let mut ws_stream = self.ticker.ws_stream.lock().await;
-    match ws_stream.next().await {
-      Some(message) => match message {
-        Ok(msg) => Ok(self.process_message(msg)),
-        Err(e) => Err(e.to_string()),
-      },
-      None => Ok(None),
+    match self.rx.recv().await {
+      Ok(msg) => Ok(Some(msg)),
+      Err(broadcast::error::RecvError::Closed) => Ok(None),
+      Err(e) => Err(e.to_string()),
     }
-  }
-
-  fn process_message(&self, message: Message) -> Option<TickerMessage> {
-    match message {
-      Message::Text(text_message) => self.process_text_message(text_message),
-      Message::Binary(ref binary_message) => {
-        if binary_message.len() < 2 {
-          return Some(TickerMessage::Ticks(vec![]));
-        } else {
-          self.process_binary(binary_message.as_slice())
-        }
-      }
-      Message::Close(closing_message) => closing_message.map(|c| {
-        TickerMessage::ClosingMessage(json!({
-          "code": c.code.to_string(),
-          "reason": c.reason.to_string()
-        }))
-      }),
-      Message::Ping(_) => unimplemented!(),
-      Message::Pong(_) => unimplemented!(),
-      Message::Frame(_) => unimplemented!(),
-    }
-  }
-
-  fn process_binary(&self, binary_message: &[u8]) -> Option<TickerMessage> {
-    // 0 - 2 : number of packets in the message
-    let num_packets =
-      i16::from_be_bytes(binary_message[0..=1].try_into().unwrap()) as usize;
-    if num_packets > 0 {
-      Some(TickerMessage::Ticks(
-        (0..num_packets)
-          .into_iter()
-          .fold((vec![], 2), |(mut acc, start), _| {
-            // start - start + 2 : length of the packet
-            let packet_len = packet_length(&binary_message[start..start + 2]);
-            let next_start = start + 2 + packet_len;
-            let tick = Tick::from(&binary_message[start + 2..next_start]);
-            acc.push(TickMessage::new(tick.instrument_token, tick));
-            (acc, next_start)
-          })
-          .0,
-      ))
-    } else {
-      None
-    }
-  }
-
-  fn process_text_message(
-    &self,
-    text_message: String,
-  ) -> Option<TickerMessage> {
-    serde_json::from_str::<TextMessage>(&text_message)
-      .map(|x| x.into())
-      .ok()
   }
 
   pub async fn close(&mut self) -> Result<(), String> {
     self.ticker.close().await
   }
+}
+
+fn process_message(message: Message) -> Option<TickerMessage> {
+  match message {
+    Message::Text(text_message) => process_text_message(text_message),
+    Message::Binary(ref binary_message) => {
+      if binary_message.len() < 2 {
+        return Some(TickerMessage::Ticks(vec![]));
+      } else {
+        process_binary(binary_message.as_slice())
+      }
+    }
+    Message::Close(closing_message) => closing_message.map(|c| {
+      TickerMessage::ClosingMessage(json!({
+        "code": c.code.to_string(),
+        "reason": c.reason.to_string()
+      }))
+    }),
+    Message::Ping(_) => unimplemented!(),
+    Message::Pong(_) => unimplemented!(),
+    Message::Frame(_) => unimplemented!(),
+  }
+}
+
+fn process_binary(binary_message: &[u8]) -> Option<TickerMessage> {
+  // 0 - 2 : number of packets in the message
+  let num_packets =
+    i16::from_be_bytes(binary_message[0..=1].try_into().unwrap()) as usize;
+  if num_packets > 0 {
+    Some(TickerMessage::Ticks(
+      (0..num_packets)
+        .into_iter()
+        .fold((vec![], 2), |(mut acc, start), _| {
+          // start - start + 2 : length of the packet
+          let packet_len = packet_length(&binary_message[start..start + 2]);
+          let next_start = start + 2 + packet_len;
+          let tick = Tick::from(&binary_message[start + 2..next_start]);
+          acc.push(TickMessage::new(tick.instrument_token, tick));
+          (acc, next_start)
+        })
+        .0,
+    ))
+  } else {
+    None
+  }
+}
+
+fn process_text_message(text_message: String) -> Option<TickerMessage> {
+  serde_json::from_str::<TextMessage>(&text_message)
+    .map(|x| x.into())
+    .ok()
 }
 
 #[cfg(test)]
