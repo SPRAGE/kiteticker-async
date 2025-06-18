@@ -1,6 +1,6 @@
 use crate::Exchange;
 
-use super::{value, price, value_short};
+use crate::parser::{price, value, value_short};
 
 #[derive(Debug, Clone, Default, PartialEq)]
 ///

@@ -1,8 +1,10 @@
 use std::time::Duration;
 
-use crate::{Depth, Exchange, Mode, OHLC};
-
-use super::{price, value};
+use crate::{
+  errors::ParseTickError,
+  parser::{price, value},
+  Depth, Exchange, Mode, OHLC,
+};
 
 #[derive(Debug, Clone, Default, PartialEq)]
 ///
@@ -62,8 +64,8 @@ impl Tick {
   }
 }
 
-impl From<&[u8]> for Tick {
-  fn from(input: &[u8]) -> Self {
+impl Tick {
+  pub(crate) fn from_bytes(input: &[u8]) -> Self {
     let mut tick = Tick::default();
 
     let parse_ltp = |t: &mut Tick, i: &[u8]| {
@@ -117,7 +119,7 @@ impl From<&[u8]> for Tick {
         if let Some(bs) = i.get(44..184) {
           t.mode = Mode::Full;
           t.set_change();
-          
+
           // 44 - 48 bytes : last traded timestamp
           t.last_traded_timestamp =
             value(&bs[0..4]).map(|x| Duration::from_secs(x.into()));
@@ -153,5 +155,12 @@ impl From<&[u8]> for Tick {
     }
 
     tick
+  }
+}
+
+impl TryFrom<&[u8]> for Tick {
+  type Error = ParseTickError;
+  fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+    crate::parser::parse_tick(value)
   }
 }
