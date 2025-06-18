@@ -16,6 +16,7 @@ keywords = ["ticker", "zerodha", "web-sockets", "trading", "real-time"]
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
+serde_repr = "0.1"
 tokio = { version = "1.28.2", features = ["full"] }
 tokio-tungstenite = { version = "0.20.1", features = ["native-tls"] }
 futures-util = { version = "0.3.28", features = ["sink"] }

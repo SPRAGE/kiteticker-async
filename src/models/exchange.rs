@@ -1,18 +1,21 @@
-#[derive(Debug, Clone, Default, PartialEq)]
+use serde_repr::{Deserialize_repr, Serialize_repr};
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize_repr, Deserialize_repr)]
+#[repr(u8)]
 ///
 /// Exchange options
 ///
 pub enum Exchange {
   #[default]
-  NSE,
-  NFO,
-  CDS,
-  BSE,
-  BFO,
-  BCD,
-  MCX,
-  MCXSX,
-  INDICES,
+  NSE = 1,
+  NFO = 2,
+  CDS = 3,
+  BSE = 4,
+  BFO = 5,
+  BCD = 6,
+  MCX = 7,
+  MCXSX = 8,
+  INDICES = 9,
 }
 
 impl Exchange {
