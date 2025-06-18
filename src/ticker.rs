@@ -7,31 +7,8 @@ use std::collections::HashMap;
 use tokio::sync::{broadcast, mpsc};
 use tokio::task::JoinHandle;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
-use std::time::Duration;
 
-#[derive(Debug, Clone)]
-pub struct KiteTickerConfig {
-    /// Buffer size for the broadcast channel
-    pub broadcast_buffer_size: usize,
-    /// WebSocket connection timeout in seconds
-    pub connection_timeout_secs: u64,
-    /// Enable compression for WebSocket messages
-    pub enable_compression: bool,
-    /// Maximum message size in bytes
-    pub max_message_size: usize,
-}
-
-impl Default for KiteTickerConfig {
-    fn default() -> Self {
-        Self {
-            broadcast_buffer_size: 1000,
-            connection_timeout_secs: 30,
-            enable_compression: true,
-            max_message_size: 64 * 1024, // 64KB
-        }
-    }
-}
-
+#[derive(Debug)]
 ///
 /// The WebSocket client for connecting to Kite Connect's streaming quotes service.
 ///
@@ -95,90 +72,6 @@ impl KiteTickerAsync {
               break;
             }
             // For critical errors, we might want to break the loop
-            if matches!(e, tokio_tungstenite::tungstenite::Error::ConnectionClosed | 
-                          tokio_tungstenite::tungstenite::Error::AlreadyClosed) {
-              break;
-            }
-          }
-        }
-      }
-    });
-
-    Ok(KiteTickerAsync {
-      api_key: api_key.to_string(),
-      access_token: access_token.to_string(),
-      cmd_tx: Some(cmd_tx),
-      msg_tx,
-      writer_handle: Some(writer_handle),
-      reader_handle: Some(reader_handle),
-    })
-  }
-
-  /// Establish a connection with custom configuration
-  pub async fn connect_with_config(
-    api_key: &str,
-    access_token: &str,
-    config: KiteTickerConfig,
-  ) -> Result<Self, String> {
-    use tokio_tungstenite::tungstenite::protocol::WebSocketConfig;
-    
-    let socket_url = format!(
-      "wss://{}?api_key={}&access_token={}",
-      "ws.kite.trade", api_key, access_token
-    );
-    let url = url::Url::parse(socket_url.as_str()).unwrap();
-
-    let ws_config = WebSocketConfig {
-      max_message_size: Some(config.max_message_size),
-      max_frame_size: Some(config.max_message_size),
-      accept_unmasked_frames: false,
-      ..Default::default()
-    };
-
-    let connector = tokio_tungstenite::Connector::NativeTls(
-      native_tls::TlsConnector::builder()
-        .build()
-        .map_err(|e| e.to_string())?
-    );
-
-    let (ws_stream, _) = tokio::time::timeout(
-      std::time::Duration::from_secs(config.connection_timeout_secs),
-      tokio_tungstenite::connect_async_with_config(url, Some(ws_config), Some(connector))
-    )
-    .await
-    .map_err(|_| "Connection timeout".to_string())?
-    .map_err(|e| e.to_string())?;
-
-    let (write_half, mut read_half) = ws_stream.split();
-
-    let (cmd_tx, mut cmd_rx) = mpsc::unbounded_channel::<Message>();
-    let (msg_tx, _) = broadcast::channel(config.broadcast_buffer_size);
-    let mut write = write_half;
-    
-    let writer_handle = tokio::spawn(async move {
-      while let Some(msg) = cmd_rx.recv().await {
-        if write.send(msg).await.is_err() {
-          break;
-        }
-      }
-    });
-
-    let msg_sender = msg_tx.clone();
-    let reader_handle = tokio::spawn(async move {
-      while let Some(message) = read_half.next().await {
-        match message {
-          Ok(msg) => {
-            if let Some(processed_msg) = process_message(msg) {
-              if msg_sender.send(processed_msg).is_err() {
-                break;
-              }
-            }
-          }
-          Err(e) => {
-            let error_msg = TickerMessage::Error(format!("WebSocket error: {}", e));
-            if msg_sender.send(error_msg).is_err() {
-              break;
-            }
             if matches!(e, tokio_tungstenite::tungstenite::Error::ConnectionClosed | 
                           tokio_tungstenite::tungstenite::Error::AlreadyClosed) {
               break;
@@ -301,6 +194,18 @@ impl KiteTickerAsync {
     } else {
       Err("Connection is closed".to_string())
     }
+  }
+
+  /// Get the current broadcast channel receiver count
+  pub fn receiver_count(&self) -> usize {
+    self.msg_tx.receiver_count()
+  }
+
+  /// Get the current broadcast channel capacity
+  pub fn channel_capacity(&self) -> usize {
+    // The broadcast channel doesn't expose capacity directly,
+    // but we can estimate based on our configuration
+    1000 // This matches our increased buffer size
   }
 }
 
