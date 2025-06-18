@@ -49,7 +49,10 @@
 //!   Ok(())
 //! }
 //! ```
+mod errors;
 mod models;
+mod parser;
+pub use errors::ParseTickError;
 pub use models::{
   Depth, DepthItem, Exchange, Mode, Order, OrderStatus, OrderTransactionType,
   OrderValidity, Request, TextMessage, Tick, TickMessage, TickerMessage, OHLC,

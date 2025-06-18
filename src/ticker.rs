@@ -1,6 +1,6 @@
-use crate::models::{
-  packet_length, Mode, Request, TextMessage, Tick, TickMessage, TickerMessage,
-};
+use crate::models::{Mode, Request, TextMessage, Tick, TickMessage, TickerMessage};
+use crate::parser::packet_length;
+use byteorder::{BigEndian, ByteOrder};
 use futures_util::{SinkExt, StreamExt};
 use serde_json::json;
 use std::collections::HashMap;
@@ -282,23 +282,23 @@ fn process_message(message: Message) -> Option<TickerMessage> {
 }
 
 fn process_binary(binary_message: &[u8]) -> Option<TickerMessage> {
-  // 0 - 2 : number of packets in the message
-  let num_packets =
-    i16::from_be_bytes(binary_message[0..=1].try_into().unwrap()) as usize;
+  if binary_message.len() < 2 {
+    return None;
+  }
+  let num_packets = BigEndian::read_u16(&binary_message[0..2]) as usize;
   if num_packets > 0 {
-    Some(TickerMessage::Ticks(
-      (0..num_packets)
-        .into_iter()
-        .fold((vec![], 2), |(mut acc, start), _| {
-          // start - start + 2 : length of the packet
-          let packet_len = packet_length(&binary_message[start..start + 2]);
-          let next_start = start + 2 + packet_len;
-          let tick = Tick::from(&binary_message[start + 2..next_start]);
-          acc.push(TickMessage::new(tick.instrument_token, tick));
-          (acc, next_start)
-        })
-        .0,
-    ))
+    let mut start = 2;
+    let mut ticks = Vec::with_capacity(num_packets);
+    for _ in 0..num_packets {
+      let packet_len = packet_length(&binary_message[start..start + 2]);
+      let next_start = start + 2 + packet_len;
+      match Tick::try_from(&binary_message[start + 2..next_start]) {
+        Ok(tick) => ticks.push(TickMessage::new(tick.instrument_token, tick)),
+        Err(e) => return Some(TickerMessage::Error(e.to_string())),
+      }
+      start = next_start;
+    }
+    Some(TickerMessage::Ticks(ticks))
   } else {
     None
   }
