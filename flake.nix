@@ -16,13 +16,17 @@
         pkgs = import nixpkgs { inherit system; };
         toolchain = fenix.packages.${system}.stable.toolchain;
       in
-      {
-        devShells.default = pkgs.mkShell {
-          buildInputs = [
-            toolchain
-            pkgs.rust-analyzer
-            pkgs.openssl
-          ];
-        };
-      });
+        {
+          devShells.default = pkgs.mkShell {
+            buildInputs = [
+              toolchain
+              pkgs.rust-analyzer
+              pkgs.openssl
+              pkgs.pkg-config
+            ];
+            shellHook = ''
+              export OPENSSL_DIR=${pkgs.openssl.dev}
+            '';
+          };
+        });
 }
