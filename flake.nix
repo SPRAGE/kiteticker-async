@@ -29,4 +29,15 @@
             '';
           };
         });
+
+      {
+        devShells.default = pkgs.mkShell {
+          buildInputs = [
+            toolchain
+            pkgs.rust-analyzer
+            pkgs.openssl
+          ];
+        };
+      });
+
 }
