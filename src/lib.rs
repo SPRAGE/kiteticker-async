@@ -52,6 +52,7 @@
 mod errors;
 mod models;
 mod parser;
+pub mod manager;
 pub use errors::ParseTickError;
 pub use models::{
   Depth, DepthItem, Exchange, Mode, Order, OrderStatus, OrderTransactionType,
@@ -60,3 +61,4 @@ pub use models::{
 
 pub mod ticker;
 pub use ticker::{KiteTickerAsync, KiteTickerSubscriber};
+pub use manager::{KiteTickerManager, KiteManagerConfig, ChannelId, ManagerStats, HealthSummary};

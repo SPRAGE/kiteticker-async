@@ -58,19 +58,16 @@ impl KiteTickerAsync {
           Ok(msg) => {
             // Process message and send result if successful
             if let Some(processed_msg) = process_message(msg) {
-              if msg_sender.send(processed_msg).is_err() {
-                // All receivers have been dropped, exit gracefully
-                break;
-              }
+              // Send to broadcast channel, continue even if no receivers are present
+              // This prevents race conditions where WebSocket receives messages before subscribers are created
+              let _ = msg_sender.send(processed_msg);
             }
           }
           Err(e) => {
             // Send error and continue trying to read
             let error_msg = TickerMessage::Error(format!("WebSocket error: {}", e));
-            if msg_sender.send(error_msg).is_err() {
-              // All receivers have been dropped, exit gracefully
-              break;
-            }
+            let _ = msg_sender.send(error_msg);
+            
             // For critical errors, we might want to break the loop
             if matches!(e, tokio_tungstenite::tungstenite::Error::ConnectionClosed | 
                           tokio_tungstenite::tungstenite::Error::AlreadyClosed) {

@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
-use kiteticker_async::{KiteTickerAsync, Mode, TickerMessage};
+use kiteticker_async::{KiteTickerAsync, TickerMessage};
 use std::time::Duration;
 use tokio::time::timeout;
 
