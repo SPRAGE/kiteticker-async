@@ -190,7 +190,7 @@ async fn test_real_connection(
     println!("\n🔧 Parser Performance:");
     for (channel_id, stats) in processor_stats {
         println!("   {:?}: {} processed, {} errors", 
-                channel_id, stats.messages_processed, stats.parse_errors);
+                channel_id, stats.messages_processed, stats.errors_count);
     }
     
     // Stop the manager

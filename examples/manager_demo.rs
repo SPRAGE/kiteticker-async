@@ -70,43 +70,36 @@ pub async fn main() -> Result<(), String> {
     }
     
     // Test with market symbols for proper distribution
-    let nifty_50 = vec![
-        408065,  // HDFC Bank
-        5633,    // TCS  
-        738561,  // Reliance
-        81153,   // Infosys
-        2953217, // ICICI Bank
-        140033,  // State Bank of India
-        492033,  // ITC
-        4267265, // Bajaj Finance
-        1270529, // Larsen & Toubro
-        884737,  // Asian Paints
+    let symbols = vec![
+        256265,265,256777,274441,260105,273929,260617,257033,257289,257545,257801,258825,259081,259337,259593,
+        259849,260873,261129,261385,261641,261897,262153,262409,262665,262921,263177,263433,263689,263945,264457,
+        264713,264969,265225,265737,265993,266249,266505,266761,267017,267273,267529,267785,268041,268297,268553,
+        268809,269065,269321,269577,269833,270089,270345,270601,270857,271113,271625,271881,272137,272393,273417,
+        273673,274185,274697,274953,275209,275465,275721,275977,276233,276489,276745,277001,277257,277513,277769,
+        278025,278281,278537,278793,279049,279305,279561,279817,280073,280329,280585,280841,281097,281353,281865,
+        282121,282377,282633,282889,283145,283401,283657,283913,284169,284425,284681,284937,285193,285449,285961,
+        286217,286473,286729,286985,287241,287497,287753,288009,288265,288521,288777,289033,289289,289545,289801,
+        290057,290313,290569,290825,291081,291337,291593,291849,292105,292361,292617,292873,293129,293385,293641,
+        293897,294153,294409,294665,294921,295177,295433,295689,398345,398601,398857,399113,399369,399625,399881,
+        400137,400393,400905,401161,401673,401929,402185,402441,402697,402953,403209,403465,403721,403977,404233,
+        404489,404745,405001,405257,405513,405769,406025,406281,406537,406793,407049,407305,407561,407817,408073,
+        408329,408585,408841,409097,409353,409609,409865,410121,410377,410633,410889,411145,411401,411657,411913,
+        412169,412425,412681,412937,413193,413449,413705,413961,414217,414473,414729,414985
     ];
-    
-    let bank_nifty = vec![
-        408065,  // HDFC Bank
-        2953217, // ICICI Bank
-        140033,  // State Bank of India
-        341249,  // Axis Bank
-        1346049, // Kotak Mahindra Bank
-    ];
-    
-    let it_stocks = vec![
-        5633,    // TCS
-        81153,   // Infosys
-        3465729, // Wipro
-        1102849, // HCL Technologies
-    ];
+
     
     println!("📊 Subscribing to symbols across connections...");
     
     // Subscribe to different symbol sets
-    manager.subscribe_symbols(&nifty_50, Some(Mode::Full)).await?;
-    manager.subscribe_symbols(&bank_nifty, Some(Mode::Quote)).await?;
-    manager.subscribe_symbols(&it_stocks, Some(Mode::LTP)).await?;
+    manager.subscribe_symbols(&symbols, Some(Mode::Full)).await?;
+    // manager.subscribe_symbols(&bank_nifty, Some(Mode::Quote)).await?;
+    // manager.subscribe_symbols(&it_stocks, Some(Mode::LTP)).await?;
     
     println!("✅ Subscribed to {} total symbols", 
-             nifty_50.len() + bank_nifty.len() + it_stocks.len());
+             symbols.len() 
+            //  + bank_nifty.len() + it_stocks.len()
+            );
+
     
     // Get symbol distribution
     let distribution = manager.get_symbol_distribution();

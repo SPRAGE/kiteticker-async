@@ -14,12 +14,16 @@ use tokio::time::timeout;
 pub struct ManagedConnection {
     pub id: ChannelId,
     pub ticker: Option<KiteTickerAsync>,
+    pub subscriber: Option<crate::ticker::KiteTickerSubscriber>,
     pub subscribed_symbols: HashMap<u32, Mode>,
     pub stats: Arc<RwLock<ConnectionStats>>,
     pub is_healthy: Arc<AtomicBool>,
     pub last_ping: Arc<AtomicU64>, // Unix timestamp
     pub task_handle: Option<JoinHandle<()>>,
     pub message_sender: mpsc::UnboundedSender<TickerMessage>,
+    // Store credentials for dynamic operations
+    api_key: String,
+    access_token: String,
 }
 
 impl ManagedConnection {
@@ -30,12 +34,15 @@ impl ManagedConnection {
         Self {
             id,
             ticker: None,
+            subscriber: None,
             subscribed_symbols: HashMap::new(),
             stats: Arc::new(RwLock::new(stats)),
             is_healthy: Arc::new(AtomicBool::new(false)),
             last_ping: Arc::new(AtomicU64::new(0)),
             task_handle: None,
             message_sender,
+            api_key: String::new(),
+            access_token: String::new(),
         }
     }
     
@@ -46,6 +53,10 @@ impl ManagedConnection {
         access_token: &str,
         config: &KiteManagerConfig,
     ) -> Result<(), String> {
+        // Store credentials for dynamic operations
+        self.api_key = api_key.to_string();
+        self.access_token = access_token.to_string();
+        
         // Connect to WebSocket
         let ticker = timeout(
             config.connection_timeout,
@@ -74,16 +85,94 @@ impl ManagedConnection {
         symbols: &[u32],
         mode: Mode,
     ) -> Result<(), String> {
-        if let Some(ticker) = self.ticker.take() {
-            // Use the public subscribe method to get a subscriber
-            let subscriber = ticker.subscribe(symbols, Some(mode.clone())).await?;
+        if self.ticker.is_some() && !self.api_key.is_empty() {
+            // Create a new ticker connection for the subscriber
+            // This avoids consuming the main ticker
+            let subscriber_ticker = crate::ticker::KiteTickerAsync::connect(
+                &self.api_key, 
+                &self.access_token
+            ).await?;
+            
+            // Use the new ticker to create a subscriber
+            let subscriber = subscriber_ticker.subscribe(symbols, Some(mode.clone())).await?;
             
             // Update our symbol tracking
             for &symbol in symbols {
                 self.subscribed_symbols.insert(symbol, mode.clone());
             }
             
-            // Start message processing task
+            // Store subscriber for message processing
+            self.subscriber = Some(subscriber);
+            
+            // Update stats
+            {
+                let mut stats = self.stats.write().await;
+                stats.symbol_count = self.subscribed_symbols.len();
+            }
+            
+            Ok(())
+        } else {
+            Err("Connection not established".to_string())
+        }
+    }
+
+    /// Dynamically add new symbols to existing subscription
+    pub async fn add_symbols(
+        &mut self,
+        symbols: &[u32],
+        mode: Mode,
+    ) -> Result<(), String> {
+        if self.subscriber.is_some() {
+            // Add to existing subscription
+            let subscriber = self.subscriber.as_mut().unwrap();
+            subscriber.subscribe(symbols, Some(mode.clone())).await?;
+            
+            // Update our symbol tracking
+            for &symbol in symbols {
+                self.subscribed_symbols.insert(symbol, mode.clone());
+            }
+            
+            // Update stats
+            {
+                let mut stats = self.stats.write().await;
+                stats.symbol_count = self.subscribed_symbols.len();
+            }
+            
+            log::info!("Added {} symbols to connection {}", symbols.len(), self.id.to_index());
+            Ok(())
+        } else {
+            // First subscription - use the original method
+            self.subscribe_symbols(symbols, mode).await
+        }
+    }
+
+    /// Dynamically remove symbols from existing subscription
+    pub async fn remove_symbols(&mut self, symbols: &[u32]) -> Result<(), String> {
+        if let Some(subscriber) = &mut self.subscriber {
+            // Remove from existing subscription
+            subscriber.unsubscribe(symbols).await?;
+            
+            // Update our symbol tracking
+            for &symbol in symbols {
+                self.subscribed_symbols.remove(&symbol);
+            }
+            
+            // Update stats
+            {
+                let mut stats = self.stats.write().await;
+                stats.symbol_count = self.subscribed_symbols.len();
+            }
+            
+            log::info!("Removed {} symbols from connection {}", symbols.len(), self.id.to_index());
+            Ok(())
+        } else {
+            Err("No active subscription to remove symbols from".to_string())
+        }
+    }
+
+    /// Start message processing for the subscriber
+    pub async fn start_message_processing(&mut self) -> Result<(), String> {
+        if let Some(subscriber) = self.subscriber.take() {
             let message_sender = self.message_sender.clone();
             let stats = Arc::clone(&self.stats);
             let is_healthy = Arc::clone(&self.is_healthy);
@@ -100,16 +189,9 @@ impl ManagedConnection {
             });
             
             self.task_handle = Some(handle);
-            
-            // Update stats
-            {
-                let mut stats = self.stats.write().await;
-                stats.symbol_count = self.subscribed_symbols.len();
-            }
-            
             Ok(())
         } else {
-            Err("Connection not established".to_string())
+            Err("No subscriber available for message processing".to_string())
         }
     }
     

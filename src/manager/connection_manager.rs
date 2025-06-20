@@ -157,8 +157,18 @@ impl KiteTickerManager {
             let mode_clone = mode.clone(); // Clone for each connection
             
             if !symbols.is_empty() {
-                connection.subscribe_symbols(&symbols, mode_clone).await
-                    .map_err(|e| format!("Failed to subscribe on connection {:?}: {}", connection_id, e))?;
+                // Use dynamic subscription if already has symbols, otherwise initial setup
+                if connection.subscribed_symbols.is_empty() {
+                    connection.subscribe_symbols(&symbols, mode_clone).await
+                        .map_err(|e| format!("Failed to subscribe on connection {:?}: {}", connection_id, e))?;
+                    
+                    // Start message processing after initial subscription
+                    connection.start_message_processing().await
+                        .map_err(|e| format!("Failed to start message processing on connection {:?}: {}", connection_id, e))?;
+                } else {
+                    connection.add_symbols(&symbols, mode_clone).await
+                        .map_err(|e| format!("Failed to add symbols on connection {:?}: {}", connection_id, e))?;
+                }
                 
                 log::info!("Subscribed {} symbols on connection {:?}", symbols.len(), connection_id);
             }
@@ -253,6 +263,8 @@ impl KiteTickerManager {
     
     /// Unsubscribe from symbols
     pub async fn unsubscribe_symbols(&mut self, symbols: &[u32]) -> Result<(), String> {
+        log::info!("Unsubscribing from {} symbols", symbols.len());
+        
         // Group symbols by connection
         let mut connection_symbols: HashMap<ChannelId, Vec<u32>> = HashMap::new();
         
@@ -260,15 +272,62 @@ impl KiteTickerManager {
             if let Some(&channel_id) = self.symbol_mapping.get(&symbol) {
                 connection_symbols.entry(channel_id).or_default().push(symbol);
                 self.symbol_mapping.remove(&symbol);
+            } else {
+                log::debug!("Symbol {} not found in subscriptions", symbol);
             }
         }
         
-        // Unsubscribe from each connection (this would require extending the ticker API)
+        // Unsubscribe from each connection
         for (channel_id, symbols) in connection_symbols {
-            log::info!("Unsubscribing {} symbols from connection {:?}", symbols.len(), channel_id);
-            // TODO: Implement unsubscribe in the ticker API
+            let connection = &mut self.connections[channel_id.to_index()];
+            
+            if !symbols.is_empty() {
+                connection.remove_symbols(&symbols).await
+                    .map_err(|e| format!("Failed to unsubscribe from connection {:?}: {}", channel_id, e))?;
+                
+                log::info!("Unsubscribed {} symbols from connection {:?}", symbols.len(), channel_id);
+            }
         }
         
+        log::info!("Successfully unsubscribed from {} symbols", symbols.len());
+        Ok(())
+    }
+
+    /// Dynamically change subscription mode for existing symbols
+    pub async fn change_mode(&mut self, symbols: &[u32], mode: Mode) -> Result<(), String> {
+        log::info!("Changing mode for {} symbols to {:?}", symbols.len(), mode);
+        
+        // Group symbols by connection
+        let mut connection_symbols: HashMap<ChannelId, Vec<u32>> = HashMap::new();
+        
+        for &symbol in symbols {
+            if let Some(&channel_id) = self.symbol_mapping.get(&symbol) {
+                connection_symbols.entry(channel_id).or_default().push(symbol);
+            } else {
+                log::debug!("Symbol {} not found in subscriptions", symbol);
+            }
+        }
+        
+        // Change mode on each connection
+        for (channel_id, symbols) in connection_symbols {
+            let connection = &mut self.connections[channel_id.to_index()];
+            
+            if !symbols.is_empty() {
+                if let Some(subscriber) = &mut connection.subscriber {
+                    subscriber.set_mode(&symbols, mode.clone()).await
+                        .map_err(|e| format!("Failed to change mode on connection {:?}: {}", channel_id, e))?;
+                    
+                    // Update our tracking
+                    for &symbol in &symbols {
+                        connection.subscribed_symbols.insert(symbol, mode.clone());
+                    }
+                    
+                    log::info!("Changed mode for {} symbols on connection {:?}", symbols.len(), channel_id);
+                }
+            }
+        }
+        
+        log::info!("Successfully changed mode for {} symbols", symbols.len());
         Ok(())
     }
     
