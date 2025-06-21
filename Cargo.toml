@@ -1,12 +1,12 @@
 [package]
-authors = ["Kaushik Chakraborty <git@kaushikc.org>"]
-name = "kiteticker-async"
-version = "0.1.1"
+authors = ["Kaushik Chakraborty <git@kaushikc.org>", "Shaun Pai <shauna.pai@gmail.com>"]
+name = "kiteticker-async-manager"
+version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 readme = "README.md"
-repository = "https://github.com/kaychaks/kiteticker-async"
-documentation = "https://docs.rs/kiteticker-async/latest/kiteticker-async/"
+repository = "https://github.com/shaunpai/kiteticker-async-manager"
+documentation = "https://docs.rs/kiteticker-async-manager/latest/kiteticker-async-manager/"
 description = """
 High-performance async WebSocket client for Kite Connect API with multi-connection support,
 dynamic subscription management, and optimized data processing.
@@ -15,7 +15,7 @@ categories = ["asynchronous", "finance", "api-bindings", "network-programming"]
 keywords = ["kite", "zerodha", "websocket", "trading", "real-time", "async", "multi-connection"]
 
 [lib]
-name = "kiteticker_async"
+name = "kiteticker_async_manager"
 path = "src/lib.rs"
 doc = true
 

@@ -1,4 +1,4 @@
-use kiteticker_async::{KiteTickerAsync, Mode, TickerMessage};
+use kiteticker_async_manager::{KiteTickerAsync, Mode, TickerMessage};
 use std::time::{Duration, Instant};
 use tokio::time::timeout;
 

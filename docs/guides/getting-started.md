@@ -18,7 +18,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-kiteticker-async = "0.1.1"
+kiteticker-async-manager = "0.1.0"
 tokio = { version = "1.0", features = ["full"] }
 ```
 
@@ -53,7 +53,7 @@ Get instrument tokens for the symbols you want to track:
 ### Single Connection Example
 
 ```rust
-use kiteticker_async::{KiteTickerAsync, Mode, TickerMessage};
+use kiteticker_async_manager::{KiteTickerAsync, Mode, TickerMessage};
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
@@ -85,7 +85,7 @@ async fn main() -> Result<(), String> {
 ### Multi-Connection Manager (Recommended)
 
 ```rust
-use kiteticker_async::{KiteTickerManager, KiteManagerConfig, Mode, TickerMessage};
+use kiteticker_async_manager::{KiteTickerManager, KiteManagerConfig, Mode, TickerMessage};
 use std::time::Duration;
 
 #[tokio::main]
@@ -149,7 +149,7 @@ async fn main() -> Result<(), String> {
 Monitor last traded prices for a portfolio:
 
 ```rust
-use kiteticker_async::{KiteTickerManager, KiteManagerConfig, Mode};
+use kiteticker_async_manager::{KiteTickerManager, KiteManagerConfig, Mode};
 
 async fn monitor_portfolio() -> Result<(), String> {
     let mut manager = create_manager().await?;
@@ -532,7 +532,7 @@ Error: Invalid instrument token
 Enable detailed logging:
 
 ```bash
-export RUST_LOG=kiteticker_async=debug
+export RUST_LOG=kiteticker_async_manager=debug
 ```
 
 ### Helper Functions

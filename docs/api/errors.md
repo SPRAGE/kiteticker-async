@@ -1,6 +1,6 @@
 # Error Handling Documentation
 
-This document provides comprehensive information about error types, handling patterns, and best practices when using kiteticker-async.
+This document provides comprehensive information about error types, handling patterns, and best practices when using kiteticker-async-manager.
 
 ## Error Types
 
@@ -9,7 +9,7 @@ This document provides comprehensive information about error types, handling pat
 Connection errors occur during WebSocket establishment or maintenance:
 
 ```rust
-use kiteticker_async::{KiteTickerAsync, KiteTickerManager};
+use kiteticker_async_manager::{KiteTickerAsync, KiteTickerManager};
 
 // Handle connection errors
 match KiteTickerAsync::connect(&api_key, &access_token).await {
@@ -56,7 +56,7 @@ match manager.subscribe_symbols(&symbols, Some(Mode::LTP)).await {
 Errors during message parsing and processing:
 
 ```rust
-use kiteticker_async::TickerMessage;
+use kiteticker_async_manager::TickerMessage;
 
 // Handle message processing errors
 while let Ok(message) = receiver.recv().await {
@@ -303,7 +303,7 @@ use log::LevelFilter;
 fn setup_logging() {
     env_logger::Builder::from_default_env()
         .filter_level(LevelFilter::Info)
-        .filter_module("kiteticker_async", LevelFilter::Debug)
+        .filter_module("kiteticker_async_manager", LevelFilter::Debug)
         .init();
 }
 ```
@@ -332,4 +332,4 @@ mod tests {
 }
 ```
 
-This error handling documentation provides comprehensive coverage of error scenarios and best practices for building robust applications with kiteticker-async.
+This error handling documentation provides comprehensive coverage of error scenarios and best practices for building robust applications with kiteticker-async-manager.

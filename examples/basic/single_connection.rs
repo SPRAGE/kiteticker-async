@@ -1,7 +1,7 @@
 // Basic single WebSocket connection example
 // This example demonstrates the simplest way to connect and receive market data
 
-use kiteticker_async::{KiteTickerAsync, Mode, TickerMessage};
+use kiteticker_async_manager::{KiteTickerAsync, Mode, TickerMessage};
 
 #[tokio::main]
 async fn main() -> Result<(), String> {

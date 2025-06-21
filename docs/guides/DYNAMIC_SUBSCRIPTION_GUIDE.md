@@ -68,7 +68,7 @@ for (channel_id, symbols) in &distribution {
 ## Complete Example
 
 ```rust
-use kiteticker_async::{KiteTickerManager, KiteManagerConfig, Mode};
+use kiteticker_async_manager::{KiteTickerManager, KiteManagerConfig, Mode};
 
 #[tokio::main]
 async fn main() -> Result<(), String> {

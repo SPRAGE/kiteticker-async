@@ -1,4 +1,4 @@
-use kiteticker_async::{
+use kiteticker_async_manager::{
   KiteTickerSubscriber, Mode, TickMessage, TickerMessage,
 };
 

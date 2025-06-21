@@ -1,7 +1,7 @@
 mod common;
 
-use kiteticker_async::ticker::*;
-use kiteticker_async::*;
+use kiteticker_async_manager::ticker::*;
+use kiteticker_async_manager::*;
 use tokio::select;
 
 use crate::common::check;

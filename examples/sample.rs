@@ -1,4 +1,4 @@
-use kiteticker_async::{KiteTickerAsync, Mode, TickerMessage};
+use kiteticker_async_manager::{KiteTickerAsync, Mode, TickerMessage};
 
 #[tokio::main]
 pub async fn main() -> Result<(), String> {

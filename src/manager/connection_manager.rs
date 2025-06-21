@@ -74,7 +74,7 @@ impl KiteTickerManager {
     /// # Example
     /// 
     /// ```rust,no_run
-    /// use kiteticker_async::{KiteTickerManager, KiteManagerConfig, Mode};
+    /// use kiteticker_async_manager::{KiteTickerManager, KiteManagerConfig, Mode};
     /// 
     /// let config = KiteManagerConfig {
     ///     max_connections: 3,

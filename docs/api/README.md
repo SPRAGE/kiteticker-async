@@ -13,7 +13,7 @@ This directory contains comprehensive API documentation for the KiteTicker Async
 ## 🚀 Quick Start
 
 ```rust
-use kiteticker_async::{KiteTickerManager, KiteManagerConfig, Mode};
+use kiteticker_async_manager::{KiteTickerManager, KiteManagerConfig, Mode};
 
 // Basic setup with manager
 let config = KiteManagerConfig::default();

@@ -1,4 +1,4 @@
-use kiteticker_async::{
+use kiteticker_async_manager::{
     KiteTickerManager, KiteManagerConfig, Mode, TickerMessage
 };
 use std::time::{Duration, Instant};

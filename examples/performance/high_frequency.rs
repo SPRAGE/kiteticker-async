@@ -1,7 +1,7 @@
 // High-frequency trading example - Maximum throughput optimization
 // This example demonstrates ultra-low latency processing for HFT scenarios
 
-use kiteticker_async::{KiteTickerManager, KiteManagerConfig, Mode, TickerMessage};
+use kiteticker_async_manager::{KiteTickerManager, KiteManagerConfig, Mode, TickerMessage};
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -93,7 +93,7 @@ async fn main() -> Result<(), String> {
 }
 
 struct HFTProcessor {
-    channel_id: kiteticker_async::ChannelId,
+    channel_id: kiteticker_async_manager::ChannelId,
     tick_count: AtomicU64,
     order_signals: AtomicU64,
     latency_samples: Arc<tokio::sync::Mutex<VecDeque<Duration>>>,
@@ -102,7 +102,7 @@ struct HFTProcessor {
 }
 
 impl HFTProcessor {
-    fn new(channel_id: kiteticker_async::ChannelId) -> Self {
+    fn new(channel_id: kiteticker_async_manager::ChannelId) -> Self {
         Self {
             channel_id,
             tick_count: AtomicU64::new(0),
@@ -113,7 +113,7 @@ impl HFTProcessor {
         }
     }
     
-    async fn process_ultra_fast(&mut self, ticks: Vec<kiteticker_async::TickMessage>) {
+    async fn process_ultra_fast(&mut self, ticks: Vec<kiteticker_async_manager::TickMessage>) {
         let process_start = Instant::now();
         
         for tick in ticks {
@@ -138,7 +138,7 @@ impl HFTProcessor {
         }
     }
     
-    async fn analyze_tick_hft(&self, tick: &kiteticker_async::TickMessage) -> Option<TradingSignal> {
+    async fn analyze_tick_hft(&self, tick: &kiteticker_async_manager::TickMessage) -> Option<TradingSignal> {
         // Ultra-fast market analysis
         
         // Get current market state
@@ -218,7 +218,7 @@ impl HFTProcessor {
         }
     }
     
-    fn calculate_spread(&self, depth: &kiteticker_async::Depth) -> f64 {
+    fn calculate_spread(&self, depth: &kiteticker_async_manager::Depth) -> f64 {
         if let (Some(best_bid), Some(best_ask)) = (
             depth.buy.first().map(|d| d.price),
             depth.sell.first().map(|d| d.price)
@@ -229,7 +229,7 @@ impl HFTProcessor {
         }
     }
     
-    fn calculate_order_imbalance(&self, depth: &kiteticker_async::Depth) -> f64 {
+    fn calculate_order_imbalance(&self, depth: &kiteticker_async_manager::Depth) -> f64 {
         let bid_volume: u32 = depth.buy.iter().map(|d| d.qty).sum();
         let ask_volume: u32 = depth.sell.iter().map(|d| d.qty).sum();
         

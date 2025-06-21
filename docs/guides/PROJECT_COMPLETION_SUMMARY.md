@@ -119,7 +119,7 @@ We have successfully implemented a **high-performance, multi-connection WebSocke
 ## 💻 **USAGE EXAMPLE**
 
 ```rust
-use kiteticker_async::{KiteTickerManager, KiteManagerConfig, Mode};
+use kiteticker_async_manager::{KiteTickerManager, KiteManagerConfig, Mode};
 
 #[tokio::main]
 async fn main() -> Result<(), String> {

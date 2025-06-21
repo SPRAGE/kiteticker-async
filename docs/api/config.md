@@ -85,7 +85,7 @@ pub struct KiteManagerConfig {
 
 ```rust
 use std::time::Duration;
-use kiteticker_async::{KiteManagerConfig, Mode};
+use kiteticker_async_manager::{KiteManagerConfig, Mode};
 
 let config = KiteManagerConfig {
     max_symbols_per_connection: 3000,

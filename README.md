@@ -1,4 +1,4 @@
-# KiteTicker Async
+# KiteTicker Async Manager
 
 High-performance async WebSocket client for the [Kite Connect API](https://kite.trade/docs/connect/v3/websocket/#websocket-streaming) with multi-connection support and dynamic subscription management.
 
@@ -6,12 +6,12 @@ High-performance async WebSocket client for the [Kite Connect API](https://kite.
 [![Apache-2.0 Licensed][apache-2-0-badge]][apache-2-0-url]
 [![Documentation][docs-badge]][docs-url]
 
-[crates-badge]: https://img.shields.io/crates/v/kiteticker-async.svg
-[crates-url]: https://crates.io/crates/kiteticker-async
+[crates-badge]: https://img.shields.io/crates/v/kiteticker-async-manager.svg
+[crates-url]: https://crates.io/crates/kiteticker-async-manager
 [apache-2-0-badge]: https://img.shields.io/badge/license-apache-blue.svg
-[apache-2-0-url]: https://github.com/kaychaks/kiteticker-async/blob/master/LICENSE
+[apache-2-0-url]: https://github.com/shaunpai/kiteticker-async-manager/blob/master/LICENSE
 [docs-badge]: https://img.shields.io/badge/docs-latest-blue.svg
-[docs-url]: https://docs.rs/kiteticker-async/latest/kiteticker-async
+[docs-url]: https://docs.rs/kiteticker-async-manager/latest/kiteticker-async-manager
 
 **[📚 Documentation](docs/)** |
 **[🚀 Getting Started](docs/guides/getting-started.md)** |
@@ -35,14 +35,14 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-kiteticker-async = "0.1.1"
+kiteticker-async-manager = "0.1.0"
 tokio = { version = "1.0", features = ["full"] }
 ```
 
 ### Basic Usage
 
 ```rust
-use kiteticker_async::{KiteTickerManager, KiteManagerConfig, Mode, TickerMessage};
+use kiteticker_async_manager::{KiteTickerManager, KiteManagerConfig, Mode, TickerMessage};
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
@@ -194,7 +194,7 @@ let config = KiteManagerConfig {
 
 ## 🆚 Comparison with Official Library
 
-| **Feature** | **Official kiteconnect-rs** | **kiteticker-async** |
+| **Feature** | **Official kiteconnect-rs** | **kiteticker-async-manager** |
 |-------------|------------------------------|----------------------|
 | **Maintenance** | ❌ Unmaintained | ✅ Actively maintained |
 | **Async Support** | ❌ Callback-based | ✅ Full async/await |
@@ -216,8 +216,8 @@ cargo install just  # Task runner
 ### Building
 ```bash
 # Clone and build
-git clone https://github.com/kaychaks/kiteticker-async.git
-cd kiteticker-async
+git clone https://github.com/shaunpai/kiteticker-async-manager.git
+cd kiteticker-async-manager
 just build
 ```
 
@@ -273,9 +273,9 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for detai
 ## 🔗 Links
 
 - **[Kite Connect API Documentation](https://kite.trade/docs/connect/v3/websocket/)**
-- **[Crates.io](https://crates.io/crates/kiteticker-async)**
-- **[Documentation](https://docs.rs/kiteticker-async/)**
-- **[GitHub Repository](https://github.com/kaychaks/kiteticker-async)**
+- **[Crates.io](https://crates.io/crates/kiteticker-async-manager)**
+- **[Documentation](https://docs.rs/kiteticker-async-manager/)**
+- **[GitHub Repository](https://github.com/shaunpai/kiteticker-async-manager)**
 
 ---
 

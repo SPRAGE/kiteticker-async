@@ -217,7 +217,7 @@ Get parser performance statistics for each connection.
 ### Basic Multi-Connection Setup
 
 ```rust
-use kiteticker_async::{KiteTickerManager, KiteManagerConfig, Mode};
+use kiteticker_async_manager::{KiteTickerManager, KiteManagerConfig, Mode};
 
 #[tokio::main]
 async fn main() -> Result<(), String> {

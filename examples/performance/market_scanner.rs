@@ -1,7 +1,7 @@
 // Market scanner example - High-volume symbol scanning
 // This example demonstrates scanning large numbers of symbols efficiently
 
-use kiteticker_async::{KiteTickerManager, KiteManagerConfig, Mode, TickerMessage};
+use kiteticker_async_manager::{KiteTickerManager, KiteManagerConfig, Mode, TickerMessage};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
@@ -82,7 +82,7 @@ async fn main() -> Result<(), String> {
 }
 
 struct MarketScanner {
-    channel_id: kiteticker_async::ChannelId,
+    channel_id: kiteticker_async_manager::ChannelId,
     tick_count: u64,
     symbol_prices: HashMap<u32, f64>,
     price_changes: HashMap<u32, f64>,
@@ -91,7 +91,7 @@ struct MarketScanner {
 }
 
 impl MarketScanner {
-    fn new(channel_id: kiteticker_async::ChannelId) -> Self {
+    fn new(channel_id: kiteticker_async_manager::ChannelId) -> Self {
         let now = Instant::now();
         Self {
             channel_id,
@@ -103,7 +103,7 @@ impl MarketScanner {
         }
     }
     
-    async fn process_ticks(&mut self, ticks: Vec<kiteticker_async::TickMessage>) {
+    async fn process_ticks(&mut self, ticks: Vec<kiteticker_async_manager::TickMessage>) {
         for tick in ticks {
             self.tick_count += 1;
             

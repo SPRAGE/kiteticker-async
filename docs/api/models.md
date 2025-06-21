@@ -35,7 +35,7 @@ pub enum Mode {
 
 **Example:**
 ```rust
-use kiteticker_async::Mode;
+use kiteticker_async_manager::Mode;
 
 // Subscribe with different modes
 manager.subscribe_symbols(&[256265], Some(Mode::LTP)).await?;   // Minimal data
@@ -282,7 +282,7 @@ impl ChannelId {
 ### Processing Market Data
 
 ```rust
-use kiteticker_async::{TickerMessage, Mode};
+use kiteticker_async_manager::{TickerMessage, Mode};
 
 while let Ok(message) = receiver.recv().await {
     if let TickerMessage::Ticks(ticks) = message {

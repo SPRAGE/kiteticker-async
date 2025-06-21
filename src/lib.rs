@@ -9,7 +9,7 @@
   attr(deny(warnings, rust_2018_idioms), allow(dead_code, unused_variables))
 ))]
 
-//! # KiteTicker Async
+//! # KiteTicker Async Manager
 //! 
 //! High-performance async WebSocket client for the [Kite Connect API](https://kite.trade/docs/connect/v3/websocket/#websocket-streaming) 
 //! with multi-connection support and dynamic subscription management.
@@ -28,7 +28,7 @@
 //! ### Multi-Connection Manager (Recommended)
 //!
 //! ```rust,no_run
-//! use kiteticker_async::{KiteTickerManager, KiteManagerConfig, Mode, TickerMessage};
+//! use kiteticker_async_manager::{KiteTickerManager, KiteManagerConfig, Mode, TickerMessage};
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), String> {

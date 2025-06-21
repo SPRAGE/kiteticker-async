@@ -5,12 +5,12 @@ Thank you for your interest in contributing to KiteTicker Async! This guide will
 ## 🎯 Ways to Contribute
 
 ### 🐛 Bug Reports
-- Report bugs through [GitHub Issues](https://github.com/kaychaks/kiteticker-async/issues)
+- Report bugs through [GitHub Issues](https://github.com/shaunpai/kiteticker-async-manager/issues)
 - Include minimal reproduction code
 - Specify environment details (OS, Rust version, etc.)
 
 ### 💡 Feature Requests  
-- Suggest new features via [GitHub Discussions](https://github.com/kaychaks/kiteticker-async/discussions)
+- Suggest new features via [GitHub Discussions](https://github.com/shaunpai/kiteticker-async-manager/discussions)
 - Explain the use case and expected behavior
 - Consider the impact on performance and API design
 
@@ -44,8 +44,8 @@ Thank you for your interest in contributing to KiteTicker Async! This guide will
 
 1. **Fork and clone the repository**
    ```bash
-   git clone https://github.com/your-username/kiteticker-async.git
-   cd kiteticker-async
+   git clone https://github.com/your-username/kiteticker-async-manager.git
+   cd kiteticker-async-manager
    ```
 
 2. **Set up environment**

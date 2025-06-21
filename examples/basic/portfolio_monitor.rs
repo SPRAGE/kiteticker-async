@@ -1,7 +1,7 @@
 // Portfolio monitoring example
 // This example demonstrates how to monitor a portfolio of stocks with organized data processing
 
-use kiteticker_async::{KiteTickerManager, KiteManagerConfig, Mode, TickerMessage};
+use kiteticker_async_manager::{KiteTickerManager, KiteManagerConfig, Mode, TickerMessage};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 use tokio::time::sleep;

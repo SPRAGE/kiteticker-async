@@ -62,7 +62,7 @@ This ensures the WebSocket reader task remains active for the entire connection 
 ## 🎯 Usage Example
 
 ```rust
-use kiteticker_async::{KiteTickerManager, KiteManagerConfig, Mode};
+use kiteticker_async_manager::{KiteTickerManager, KiteManagerConfig, Mode};
 
 // Create high-performance configuration
 let config = KiteManagerConfig {

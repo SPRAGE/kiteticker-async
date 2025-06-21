@@ -96,27 +96,27 @@ Practical code examples organized by complexity:
 ## 🔗 External Resources
 
 - **[Kite Connect API Docs](https://kite.trade/docs/connect/v3/websocket/)**
-- **[Crates.io Package](https://crates.io/crates/kiteticker-async)**
-- **[GitHub Repository](https://github.com/kaychaks/kiteticker-async)**
-- **[Rust Documentation](https://docs.rs/kiteticker-async/)**
+- **[Crates.io Package](https://crates.io/crates/kiteticker-async-manager)**
+- **[GitHub Repository](https://github.com/shaunpai/kiteticker-async-manager)**
+- **[Rust Documentation](https://docs.rs/kiteticker-async-manager/)**
 
 ## 📞 Support
 
 ### Documentation Issues
 If you find issues with the documentation:
-1. Check the [GitHub Issues](https://github.com/kaychaks/kiteticker-async/issues)
+1. Check the [GitHub Issues](https://github.com/shaunpai/kiteticker-async-manager/issues)
 2. Create a new issue with the "documentation" label
 3. Provide specific details about the problem
 
 ### Usage Questions
 For usage questions and discussions:
-1. Check existing [GitHub Discussions](https://github.com/kaychaks/kiteticker-async/discussions)
+1. Check existing [GitHub Discussions](https://github.com/shaunpai/kiteticker-async-manager/discussions)
 2. Review the [examples directory](../examples/)
 3. Consult the [getting started guide](guides/getting-started.md)
 
 ### Bug Reports
 For bug reports:
-1. Use the [GitHub Issues](https://github.com/kaychaks/kiteticker-async/issues)
+1. Use the [GitHub Issues](https://github.com/shaunpai/kiteticker-async-manager/issues)
 2. Include minimal reproduction code
 3. Specify your environment details
 
@@ -124,4 +124,4 @@ For bug reports:
 
 **📝 Documentation Version**: Latest  
 **📅 Last Updated**: June 2025  
-**✨ Contributors**: See [GitHub Contributors](https://github.com/kaychaks/kiteticker-async/graphs/contributors)
+**✨ Contributors**: See [GitHub Contributors](https://github.com/shaunpai/kiteticker-async-manager/graphs/contributors)
