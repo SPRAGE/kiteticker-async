@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_with::{serde_as, DefaultOnNull};
@@ -36,6 +36,7 @@ impl From<String> for TimeStamp {
   fn from(value: String) -> Self {
     let secs = NaiveDateTime::parse_from_str(&value, "%Y-%m-%d %H:%M:%S")
       .unwrap()
+      .and_utc()
       .timestamp();
     TimeStamp(secs)
   }
@@ -43,8 +44,9 @@ impl From<String> for TimeStamp {
 
 impl From<TimeStamp> for String {
   fn from(value: TimeStamp) -> Self {
-    NaiveDateTime::from_timestamp_opt(value.0, 0)
+    DateTime::<Utc>::from_timestamp(value.0, 0)
       .unwrap_or_default()
+      .naive_utc()
       .format("%Y-%m-%d %H:%M:%S")
       .to_string()
   }

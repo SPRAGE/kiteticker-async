@@ -1,3 +1,17 @@
+//! # Connection Manager Module
+//! 
+//! This module contains the main `KiteTickerManager` which provides high-performance
+//! multi-connection WebSocket management for the Kite Connect ticker API.
+//!
+//! ## Features
+//!
+//! - **Multi-Connection Support**: Utilizes up to 3 WebSocket connections
+//! - **Dynamic Load Balancing**: Automatic symbol distribution across connections
+//! - **High-Performance Processing**: Dedicated parser tasks per connection
+//! - **Dynamic Subscriptions**: Runtime symbol addition/removal without reconnection
+//! - **Health Monitoring**: Real-time connection health tracking
+//! - **Error Resilience**: Comprehensive error handling and recovery
+
 use crate::models::{Mode, TickerMessage};
 use crate::manager::{
     KiteManagerConfig, ChannelId, ManagedConnection, MessageProcessor, HealthMonitor,
@@ -40,12 +54,42 @@ pub struct KiteTickerManager {
     /// Next connection index for round-robin distribution
     next_connection_index: usize,
     
-    /// Manager start time
+    /// Manager start time for uptime tracking
+    #[allow(dead_code)]
     start_time: Instant,
 }
 
 impl KiteTickerManager {
-    /// Create a new KiteTickerManager
+    /// Creates a new KiteTickerManager instance with the specified configuration
+    /// 
+    /// This initializes the manager with the provided API credentials and configuration,
+    /// but does not start any connections. Call [`start()`](Self::start) to begin operation.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `api_key` - Your Kite Connect API key
+    /// * `access_token` - Valid access token from Kite Connect
+    /// * `config` - Manager configuration settings
+    /// 
+    /// # Example
+    /// 
+    /// ```rust,no_run
+    /// use kiteticker_async::{KiteTickerManager, KiteManagerConfig, Mode};
+    /// 
+    /// let config = KiteManagerConfig {
+    ///     max_connections: 3,
+    ///     max_symbols_per_connection: 3000,
+    ///     enable_dedicated_parsers: true,
+    ///     default_mode: Mode::LTP,
+    ///     ..Default::default()
+    /// };
+    /// 
+    /// let manager = KiteTickerManager::new(
+    ///     "your_api_key".to_string(),
+    ///     "your_access_token".to_string(),
+    ///     config,
+    /// );
+    /// ```
     pub fn new(
         api_key: String,
         access_token: String,

@@ -6,12 +6,56 @@ edition = "2021"
 license = "Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/kaychaks/kiteticker-async"
-documentation = "https://docs.rs/kiteticker-async/0.1.0/kiteticker-async/"
+documentation = "https://docs.rs/kiteticker-async/latest/kiteticker-async/"
 description = """
-  Async version of the ticker module of the kiteconnect-rs crate.
+High-performance async WebSocket client for Kite Connect API with multi-connection support,
+dynamic subscription management, and optimized data processing.
 """
-categories = ["asynchronous", "finance"]
-keywords = ["ticker", "zerodha", "web-sockets", "trading", "real-time"]
+categories = ["asynchronous", "finance", "api-bindings", "network-programming"]
+keywords = ["kite", "zerodha", "websocket", "trading", "real-time", "async", "multi-connection"]
+
+[lib]
+name = "kiteticker_async"
+path = "src/lib.rs"
+doc = true
+
+# Basic Examples - Simple, focused examples for getting started
+[[example]]
+name = "single_connection"
+path = "examples/basic/single_connection.rs"
+doc = true
+
+[[example]]
+name = "portfolio_monitor"
+path = "examples/basic/portfolio_monitor.rs"
+doc = true
+
+[[example]]
+name = "runtime_subscription_example"
+path = "examples/basic/runtime_subscription_example.rs"
+doc = true
+
+# Advanced Examples - Complex scenarios and advanced features
+[[example]]
+name = "dynamic_subscription_demo"
+path = "examples/advanced/dynamic_subscription_demo.rs"
+doc = true
+
+[[example]]
+name = "manager_demo"
+path = "examples/advanced/manager_demo.rs"
+doc = true
+
+# Performance Examples - Performance optimization and benchmarking
+[[example]]
+name = "performance_demo"
+path = "examples/performance/performance_demo.rs"
+doc = true
+
+[[example]]
+name = "message_flow_test"
+path = "examples/performance/message_flow_test.rs"
+doc = true
 
 [dependencies]
 serde_json = "1.0"
@@ -35,6 +79,22 @@ sha2 = "0.10"
 hex = "0.4.3"
 criterion = { version = "0.5", features = ["html_reports"] }
 env_logger = "0.11"
+
+# Additional Performance Examples
+[[example]]
+name = "market_scanner"
+path = "examples/performance/market_scanner.rs"
+doc = true
+
+[[example]]
+name = "load_test"
+path = "examples/performance/load_test.rs"
+doc = true
+
+[[example]]
+name = "high_frequency"
+path = "examples/performance/high_frequency.rs"
+doc = true
 
 [[bench]]
 name = "websocket_performance"

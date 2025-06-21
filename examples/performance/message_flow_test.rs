@@ -2,7 +2,7 @@ use kiteticker_async::{
     KiteTickerManager, KiteManagerConfig, Mode, TickerMessage
 };
 use std::time::{Duration, Instant};
-use tokio::time::{timeout, sleep};
+use tokio::time::timeout;
 use env_logger;
 
 #[tokio::main]
